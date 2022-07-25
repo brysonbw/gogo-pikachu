@@ -38,6 +38,11 @@
       .mobile-message{
         display: none;
         font-family: Arial, Helvetica, sans-serif;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        /* bring your own prefixes */
+        transform: translate(-50%, -50%);
       }
 
       @media screen and (max-width: 491px) {
@@ -47,14 +52,14 @@
         .mobile-message {
           display: block;
           text-align: center;
-          margin: 30em auto;
+          margin: 0 auto;
         }
       }
     </style>
     <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
 </head>
 <body>
-  <div class="mobile-message">Recommend to play on desktop browsers 💻</div>
+  <div class="mobile-message">Recommend playing on desktop browsers 💻</div>
 <script>
 /** GoGo Pikachu Script */
 
@@ -92,6 +97,7 @@ var levelText
 var scoreText;
 var gameOverText
 var gameTitle
+var ToggleMusicOn
 
 // CONSTANTS
 
@@ -138,11 +144,27 @@ function create ()
 
     // add background music
     this.backgroundMusic = this.sound.add(BACKGROUND_MUSIC_KEY, {loop: true})
-    // play background music
-    this.backgroundMusic.play()
+
+    // check if music is locked
+    // toggle music on
+    if (this.sound.locked)
+    {
+         ToggleMusicOn = this.add.text(16, 60, 'Click to play audio 🔊', { fontSize: '20px', fill: '#000' });
+
+        this.sound.once('unlocked', function ()
+        {
+            ToggleMusicOn.destroy();
+           // play background music
+         this.backgroundMusic.play()
+        }, this);
+    } else {
+        // play background music
+        this.backgroundMusic.play()
+    }
+
+
     // add pikachu chant
     this.pikachu = this.sound.add(PIKACHU_CHANT_KEY, { loop: false });
-    this.pikachu.play()
 
     //  create platform group
     platforms = this.physics.add.staticGroup();
@@ -268,9 +290,16 @@ function collectThunderStone (player, thunderStone)
         level ++;
         levelText.setText('Level: ' + level);
 
-        // play pikachu chant
+        // if sound isn't locked 
+        // init pikachu chant
+        if (!this.sound.locked) {
+           // play pikachu chant
         this.pikachu.play()
-
+        } else {
+          // no pikachu sound
+          return
+        }
+       
         
     }
 }
@@ -295,6 +324,7 @@ function hitToxicOrb (player, toxicOrb)
      scoreText.visible = false
      levelText.visible = false
      gameTitle.visible = false
+     ToggleMusicOn.visible = false
 
     gameOver = true;
 
