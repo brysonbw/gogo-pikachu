@@ -101,7 +101,7 @@ const THUNDER_STONE_KEY = 'thunder-stone'
 const TOXIC_ORB_KEY = 'toxic-orb'
 const BACKGROUND_MUSIC_KEY = 'background-music'
 const PIKACHU_CHANT_KEY = 'level-up'
-const GAME_OVER = 'game-over'
+const GAME_OVER_MUSIC_KEY = 'game-over'
 
 // game init
 
@@ -284,7 +284,7 @@ function hitToxicOrb (player, toxicOrb)
     this.backgroundMusic.stop()
 
     // init game over sound effect
-    this.gameOverSound = this.sound.add('game-over', {loop: false})
+    this.gameOverSound = this.sound.add(GAME_OVER_MUSIC_KEY, {loop: false})
     // play game over
     this.gameOverSound.play()
 
@@ -301,7 +301,7 @@ function hitToxicOrb (player, toxicOrb)
    // restart game/window
    setTimeout(() => {
     location.reload()
-   }, 3000)
+   }, 4000)
   
 }
 
