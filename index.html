@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://cdn3.iconfinder.com/data/icons/pokemon-go-3/512/pokemon_go_play_game_charcter-512.png" />
+
+
+  
+	<meta name="description" content="GoGo Pikachu | Phaser 2D Platform Game">
+	 
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://gogo-pikachu.vercel.app/">
+<meta property="og:title" content="GoGo Pikachu">
+<meta property="og:description" content="GoGo Pikachu | Phaser 2D Platform Game">
+<meta property="og:image" content="https://res.cloudinary.com/ddlhtsgmp/image/upload/v1658590433/GoGo_Pikachu.png">
+
+
+<meta property="twitter:card" content="summary_large_image">
+<meta property="twitter:url" content="https://gogo-pikachu.vercel.app/">
+<meta property="twitter:title" content="GoGo Pikachu">
+<meta property="twitter:description" content="GoGo Pikachu | Phaser 2D Platform Game">
+<meta property="twitter:image" content="https://res.cloudinary.com/ddlhtsgmp/image/upload/v1658590433/GoGo_Pikachu.png">
+
+
+    <title>GoGo Pikachu | Phaser 2D Platform Game</title>
+    <style>
+      * { padding: 0; margin: 0; }
+
+
+      canvas {
+        display: block;
+        margin:0 auto;
+      }
+
+
+      .mobile-message{
+        display: none;
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      @media screen and (max-width: 491px) {
+        canvas{
+          display: none;
+        }
+        .mobile-message {
+          display: block;
+          text-align: center;
+          margin: 30em auto;
+        }
+      }
+    </style>
+    <script src="//cdn.jsdelivr.net/npm/phaser@3.11.0/dist/phaser.js"></script>
+</head>
+<body>
+  <div class="mobile-message">Recommend to play on desktop browsers 💻</div>
+<script>
+/** GoGo Pikachu Script */
+
+  // phaser game config/ init
+  var config = {
+    type: Phaser.AUTO,
+    width: 800,
+    height: 600,
+    physics: {
+      default: 'arcade',
+      arcade: {
+        gravity: { y: 200 },
+        debug: false
+      }
+    },
+    scene: {
+      preload: preload,
+      create: create,
+      update: update
+  }
+};
+
+
+// globals
+
+var player;
+var thunderStones;
+var toxicOrbs;
+var platforms;
+var cursors;
+var score = 0;
+var level = 0
+var gameOver = false;
+var levelText
+var scoreText;
+var gameOverText
+var gameTitle
+
+// CONSTANTS
+
+const GROUND_KEY = 'ground'
+const PLAYER_KEY = 'pikachu'
+const THUNDER_STONE_KEY = 'thunder-stone'
+const TOXIC_ORB_KEY = 'toxic-orb'
+const BACKGROUND_MUSIC_KEY = 'background-music'
+const PIKACHU_CHANT_KEY = 'level-up'
+const GAME_OVER = 'game-over'
+
+// game init
+
+var game = new Phaser.Game(config);
+
+
+// PRELOAD
+function preload ()
+{
+    // load sky
+    this.load.image('sky', 'assets/images/sky.png')
+    // load ground
+    this.load.image(GROUND_KEY, 'assets/images/platform.png')
+    // load thunder stones
+    this.load.image(THUNDER_STONE_KEY, 'assets/images/thunder-stone.png')
+    // load pikachu/player
+    this.load.image(PLAYER_KEY, 'assets/images/pikachu.png')
+    // load toxicOrbs
+    this.load.image(TOXIC_ORB_KEY, 'assets/images/toxic-orb.png')
+    // load game music
+    this.load.audio(BACKGROUND_MUSIC_KEY, ['assets/music/gogo-pikachu-music.mp3']);
+     // load game over music
+     this.load.audio(GAME_OVER, ['assets/music/game-over.mp3']);
+    //// load pikachu chant
+    this.load.audio(PIKACHU_CHANT_KEY, ['assets/music/pikachu-echo-level-up.mp3']);
+}
+
+// CREATE
+function create ()
+{
+
+    //  background
+    this.add.image(400, 300, 'sky');
+
+    // add background music
+    this.backgroundMusic = this.sound.add(BACKGROUND_MUSIC_KEY, {loop: true})
+    // play background music
+    this.backgroundMusic.play()
+    // add pikachu chant
+    this.pikachu = this.sound.add(PIKACHU_CHANT_KEY, { loop: false });
+    this.pikachu.play()
+
+    //  create platform group
+    platforms = this.physics.add.staticGroup();
+
+    //  platform ground
+    platforms.create(400, 568, GROUND_KEY).setScale(2).refreshBody();
+
+    //  other platforms
+    platforms.create(600, 400, GROUND_KEY);
+    platforms.create(50, 250, GROUND_KEY);
+    platforms.create(750, 220, GROUND_KEY);
+
+     // create player
+      player = this.physics.add.sprite(95, 450, PLAYER_KEY).setDisplaySize(50, 50)
+     // set bounce
+     player.setBounce(0.1)
+     // set bounds -> only movable in canvas
+     player.setCollideWorldBounds(true)
+
+    //  input -> cursors
+    cursors = this.input.keyboard.createCursorKeys();
+
+    //  add thunder stones to collect
+    thunderStones = this.physics.add.group({
+        key: THUNDER_STONE_KEY,
+        repeat: 11,
+        setXY: { x: 12, y: 0, stepX: 70 },
+        setScale: { x: .3, y: .3}
+    });
+
+    thunderStones.children.iterate(function (child) {
+
+        //  give each thunder stone a different bounce
+        child.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
+
+    });
+
+    toxicOrbs = this.physics.add.group();
+
+    //  score
+    scoreText = this.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#000' });
+
+    // level 
+    levelText = this.add.text(633, 16, 'Level: 0', { fontSize: '32px', fill: '#000' });
+
+    // game title
+    gameTitle = this.add.text(295, 16, 'GoGo Pikachu', { fontSize: '32px', fill: 'yellow' });
+
+
+    //  collide player and the thunder stones with the platforms
+    this.physics.add.collider(player, platforms);
+    this.physics.add.collider(thunderStones, platforms);
+    this.physics.add.collider(toxicOrbs, platforms);
+
+    //  Checks to see if the player overlaps with any of the thunder stones, if he does call the collectThunderStone function
+    this.physics.add.overlap(player, thunderStones, collectThunderStone, null, this);
+
+    this.physics.add.collider(player, toxicOrbs, hitToxicOrb, null, this);
+}
+
+// UPDATE
+function update ()
+{
+    if (gameOver)
+    {
+        return;
+    }
+    // go left
+    if (cursors.left.isDown)
+    {
+        player.setVelocityX(-160);
+    }
+    // go right
+    else if (cursors.right.isDown)
+    {
+        player.setVelocityX(160);  
+    }
+    // stay grounded
+    else
+    {
+        player.setVelocityX(0);
+    }
+    // jump
+    if (cursors.up.isDown && player.body.touching.down)
+    {
+        player.setVelocityY(-330);
+    }
+}
+
+
+// collect thunder stones
+function collectThunderStone (player, thunderStone)
+{
+    thunderStone.disableBody(true, true);
+
+    //  add and update score
+    score += 10;
+    scoreText.setText('Score: ' + score);
+
+    if (thunderStones.countActive(true) === 0)
+    {
+
+      // camera shake
+      this.cameras.main.shake(225);
+
+        //  A new batch of stars to collect
+        thunderStones.children.iterate(function (child) {
+
+            child.enableBody(true, child.x, 0, true, true);
+
+        });
+
+        var x = (player.x < 400) ? Phaser.Math.Between(400, 800) : Phaser.Math.Between(0, 400);
+
+        // add/create toxic orb into the game for each level completed
+        var toxicOrb = toxicOrbs.create(x, 16,  TOXIC_ORB_KEY);
+        toxicOrb.setBounce(1);
+        toxicOrb.setCollideWorldBounds(true);
+        toxicOrb.setVelocity(Phaser.Math.Between(-200, 200), 20);
+        toxicOrb.allowGravity = false;
+
+        // add and update level
+        level ++;
+        levelText.setText('Level: ' + level);
+
+        // play pikachu chant
+        this.pikachu.play()
+
+        
+    }
+}
+
+// player hits toxic orbs -> game over
+function hitToxicOrb (player, toxicOrb)
+{
+    this.physics.pause();
+
+    // stop background music
+    this.backgroundMusic.stop()
+
+    // init game over sound effect
+    this.gameOverSound = this.sound.add('game-over', {loop: false})
+    // play game over
+    this.gameOverSound.play()
+
+    player.setTint(0xff0000);
+
+     // game over 
+     gameOverText = this.add.text(325, 300, 'Game Over!', { fontSize: '30px', fill: 'red', align: 'center', strokeThickness: 1, stroke: 'red' });
+     scoreText.visible = false
+     levelText.visible = false
+     gameTitle.visible = false
+
+    gameOver = true;
+
+   // restart game/window
+   setTimeout(() => {
+    location.reload()
+   }, 3000)
+  
+}
+
+</script>
+</body>
+</html>
